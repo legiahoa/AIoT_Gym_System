@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1059848506889",
+    "project_id": "aiot-fitness",
+    "storage_bucket": "aiot-fitness.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1059848506889:android:7e03b38d251303c4e8f2d8",
+        "android_client_info": {
+          "package_name": "com.example.stream_main_applatest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1059848506889-ljp2r8megn9ckrgo6hacd9fn0qcertbt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.stream_main_applatest",
+            "certificate_hash": "f11ac664d31fbad4a2b2621e1ecd8b8c86b8b19b"
+          }
+        },
+        {
+          "client_id": "1059848506889-orrfeun4it3mfe52o3cmileej621eb5i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.stream_main_applatest",
+            "certificate_hash": "691e8bd86b77f4f10f735e6967bcb2071ecf61a3"
+          }
+        },
+        {
+          "client_id": "1059848506889-msn15g2rmkg3l0rli66od7j81gp46ea7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDq6k21Rx6htrZwQcCkUfrYVKStVq6nZio"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1059848506889-msn15g2rmkg3l0rli66od7j81gp46ea7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
