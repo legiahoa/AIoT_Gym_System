@@ -1,0 +1,134 @@
+import cv2
+import paho.mqtt.client as mqtt
+import json
+import math
+import time
+import datetime
+from flask import Flask, Response
+import mediapipe.python.solutions.pose as mp_pose
+import mediapipe.python.solutions.drawing_utils as mp_drawing
+
+app = Flask(__name__)
+
+# --- BIẾN TOÀN CỤC ĐIỀU KHIỂN QUAY VIDEO ---
+trigger_save = False # Cờ hiệu: Khi nào Android bảo lưu thì mới lưu
+global_rep_count = 0
+
+# --- HÀM XỬ LÝ LỆNH TỪ ANDROID ---
+def on_message(client, userdata, msg):
+    global trigger_save
+    try:
+        payload = json.loads(msg.payload.decode('utf-8'))
+        # Nếu app gửi lệnh "save", bật cờ hiệu cắt video
+        if payload.get("command") == "save":
+            trigger_save = True
+            print("🚀 NHẬN LỆNH TỪ ĐIỆN THOẠI: Đang đóng gói Video...")
+    except Exception as e:
+        print("Lỗi đọc lệnh:", e)
+
+# --- CẤU HÌNH MQTT ---
+broker_address = "10.10.0.60" # IP máy tính em
+topic_data = "fitness/posture/data" # Kênh AI gửi số rep đi
+topic_command = "fitness/posture/command" # Kênh AI nghe lệnh từ App
+
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="Edge_AI_Camera")
+client.on_message = on_message # Đăng ký hàm nghe lệnh
+
+try:
+    client.connect(broker_address, 1883, 60)
+    client.subscribe(topic_command) # Bắt đầu nghe ngóng
+    client.loop_start()
+except Exception as e:
+    print("Lỗi kết nối MQTT:", e)
+
+pose = mp_pose.Pose(min_detection_confidence=0.6, min_tracking_confidence=0.6)
+
+def calculate_angle(a, b, c):
+    a = [a.x, a.y]; b = [b.x, b.y]; c = [c.x, c.y]
+    radians = math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0])
+    angle = abs(radians * 180.0 / math.pi)
+    if angle > 180.0: angle = 360 - angle
+    return angle
+
+def generate_frames():
+    global trigger_save, global_rep_count
+    cap = cv2.VideoCapture(0)
+    stage = None
+    last_send_time = time.time()
+
+    # Tạo video khởi đầu
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    filename = datetime.datetime.now().strftime("Set_Squat_%d%m%Y_%H%M%S.mp4")
+    out = cv2.VideoWriter(filename, fourcc, 20.0, (640, 480))
+    print(f"🎥 Đang ghi hình hiệp mới: {filename}")
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret: break
+            
+        frame = cv2.resize(frame, (640, 480))
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
+        results = pose.process(image)
+        image.flags.writeable = True
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        if results.pose_landmarks:
+            landmarks = results.pose_landmarks.landmark
+            hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP.value]
+            knee = landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value]
+            ankle = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value]
+            
+            if hip.visibility > 0.6 and knee.visibility > 0.6 and ankle.visibility > 0.6:
+                angle = calculate_angle(hip, knee, ankle)
+                if angle > 160: stage = "up"
+                if angle < 90 and stage == 'up':
+                    stage = "down"
+                    global_rep_count += 1
+            else: angle = 0 
+
+            current_time = time.time()
+            if current_time - last_send_time > 0.1: 
+                payload = {
+                    "exercise": "Squat",
+                    "current_rep": global_rep_count,
+                    "status": "Tập rất tốt!" if stage == "down" else "Sẵn sàng"
+                }
+                client.publish(topic_data, json.dumps(payload))
+                last_send_time = current_time
+
+            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+            cv2.putText(image, f'Reps: {global_rep_count}', (15, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3, cv2.LINE_AA)
+
+        # 1. BỘ CẮT VIDEO TỰ ĐỘNG
+        if trigger_save:
+            out.release() # Khóa file video cũ lại
+            print(f"✅ Đã lưu xong file: {filename}")
+            
+            # Chuẩn bị máy quay cho hiệp tiếp theo
+            filename = datetime.datetime.now().strftime("Set_Squat_%d%m%Y_%H%M%S.mp4")
+            out = cv2.VideoWriter(filename, fourcc, 20.0, (640, 480))
+            print(f"🎥 Đang ghi hình hiệp mới: {filename}")
+            
+            # Reset dữ liệu
+            trigger_save = False
+            global_rep_count = 0
+            stage = None
+
+        out.write(image)
+
+        # 2. Phát luồng Web
+        ret, buffer = cv2.imencode('.jpg', image)
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+    cap.release()
+    out.release() 
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    print("Hệ thống AI sẵn sàng!")
+    app.run(host='0.0.0.0', port=5000, threaded=True)
