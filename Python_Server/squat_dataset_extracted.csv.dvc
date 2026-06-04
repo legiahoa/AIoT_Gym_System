@@ -1,0 +1,5 @@
+outs:
+- md5: b2f0d694869905e3c392bfd307b7e3bb
+  size: 4574188
+  hash: md5
+  path: squat_dataset_extracted.csv

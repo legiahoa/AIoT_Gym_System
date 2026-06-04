@@ -35,7 +35,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="D:\UIT\HK6\DACN\SuccessSystem\EdgeAI_Python\ai_env"
+VIRTUAL_ENV="D:\UIT\HK6\DACN\AIoT_Gym_System\Python_Server\ai_env"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

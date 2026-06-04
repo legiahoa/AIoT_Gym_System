@@ -6,22 +6,23 @@ import threading
 import time
 import os
 import shutil
-import numpy as np
+import pandas as pd
+import pickle
 
 # ==========================================
-
 # 1. CẤU HÌNH MQTT & ĐƯỜNG DẪN MẠNG
+# ==========================================
 MQTT_BROKER = "broker.emqx.io" 
 MQTT_PORT = 1883
 TOPIC_COMMAND = "fitness/app/command" 
 TOPIC_RESULT = "fitness/iot/result"   
 
-# IP CUA THIET BI IOT
-IP_PYTHON = "192.168.1.15" 
+# IP CỦA THIẾT BỊ IOT (Sửa lại IP máy tính của bạn nếu cần)
+IP_PYTHON = "172.29.192.1" 
 
 # ==========================================
-
-# 2. BIẾN TOÀN CỤC & FLASK APP
+# 2. BIẾN TOÀN CỤC & FLASK APP & AI MODEL
+# ==========================================
 app = Flask(__name__, static_folder='static')
 output_frame = None
 lock = threading.Lock()
@@ -29,44 +30,55 @@ lock = threading.Lock()
 is_recording = False
 video_writer = None
 temp_filename = "temp_set.mp4"
+last_alert_time = 0  # Chống spam tin nhắn MQTT
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 mp_draw = mp.solutions.drawing_utils
 
+# Biến dùng cho Logic đếm Rep hoàn toàn bằng AI
+squat_stage = "up" 
+squat_counter = 0
+
+# Nạp mô hình ML ngay khi khởi động
+MODEL_FILE = "squat_model.pkl"
+try:
+    with open(MODEL_FILE, 'rb') as f:
+        model = pickle.load(f)
+    print(f"[AI CORE] Đã nạp thành công mô hình: {MODEL_FILE}")
+except Exception as e:
+    print(f"[AI CORE] Lỗi nạp mô hình: {e}. Vui lòng chạy train_model.py trước.")
+    model = None
+
 # ==========================================
-
 # 3. CÁC HÀM XỬ LÝ CHÍNH
-
+# ==========================================
 def save_local_and_notify():
     """Luồng ngầm: Chuyển file mp4 vào thư mục static và gửi URL cho Android"""
     print("Đang xử lý file video nội bộ...")
     try:
-        # Tạo tên file duy nhất dựa trên thời gian
         final_filename = f"exercise_{int(time.time())}.mp4"
         save_path = os.path.join("static", "videos", final_filename)
-        
-        # Di chuyển file từ thư mục tạm vào thư mục static/videos
         shutil.move(temp_filename, save_path)
         
-        # Tạo đường link nội bộ để Android có thể truy cập
         video_url = f"http://{IP_PYTHON}:5000/videos/{final_filename}"
         print(f"Lưu thành công! URL: {video_url}")
         
-        # Bắn URL về cho Android qua MQTT
         client.publish(TOPIC_RESULT, f"UPLOAD_SUCCESS|{video_url}")
-            
     except Exception as e:
         print(f"Lỗi lưu file: {e}")
         client.publish(TOPIC_RESULT, "UPLOAD_FAILED")
 
 def on_mqtt_message(client, userdata, msg):
-    global is_recording, video_writer
+    global is_recording, video_writer, squat_counter, squat_stage
     command = msg.payload.decode()
     print(f"Nhận được lệnh MQTT: {command}")
     
     if command == "START":
         if not is_recording:
+            # Reset biến đếm khi bắt đầu set mới
+            squat_counter = 0
+            squat_stage = "up"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             video_writer = cv2.VideoWriter(temp_filename, fourcc, 20.0, (640, 480))
             is_recording = True
@@ -88,10 +100,8 @@ client.subscribe(TOPIC_COMMAND)
 client.loop_start()
 
 # ==========================================
-
 # 4. XỬ LÝ CAMERA & FLASK ROUTES
-
-# API mới: Cho phép Android truy cập file MP4
+# ==========================================
 @app.route('/videos/<filename>')
 def play_video(filename):
     return send_from_directory(os.path.join(app.root_path, 'static', 'videos'), filename)
@@ -111,32 +121,18 @@ def generate_stream():
 def video_feed():
     return Response(generate_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-# Thêm hàm tính góc vào trước hàm process_camera
-def calculate_angle(a, b, c):
-    """Tính góc giữa 3 điểm a, b, c (b là đỉnh góc)"""
-    a = np.array(a) # Điểm đầu
-    b = np.array(b) # Đỉnh góc (VD: Đầu gối)
-    c = np.array(c) # Điểm cuối
-    
-    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-    angle = np.abs(radians*180.0/np.pi)
-    
-    if angle > 180.0:
-        angle = 360 - angle
-        
-    return angle
-
-# Biến toàn cục đếm số rep tập
-squat_stage = None 
-squat_counter = 0
-
 def process_camera():
     global output_frame, lock, is_recording, video_writer
-    global squat_stage, squat_counter # Lấy biến toàn cục
+    global squat_stage, squat_counter, last_alert_time 
     
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+    # Khởi tạo tên cột cho Pandas DataFrame một lần để tiết kiệm tài nguyên
+    feature_names = []
+    for i in range(33):
+        feature_names.extend([f"x_{i}", f"y_{i}", f"z_{i}", f"v_{i}"])
 
     while cap.isOpened():
         success, frame = cap.read()
@@ -151,50 +147,64 @@ def process_camera():
         if results.pose_landmarks:
             mp_draw.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
             
-            # TRÍCH XUẤT TỌA ĐỘ VÀ TÍNH TOÁN (Logic cho bài SQUAT)
             try:
                 landmarks = results.pose_landmarks.landmark
                 
-                # Lấy tọa độ Vai, Hông, Đầu gối, Cổ chân (bên phải)
-                shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-                hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
-                knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
-                ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
-                
-                # 1. Tính góc Đầu gối (Đánh giá độ sâu của Squat)
-                knee_angle = calculate_angle(hip, knee, ankle)
-                
-                # 2. Tính góc Lưng so với phương thẳng đứng (Đánh giá lỗi gập lưng)
-                # Tạo một điểm tham chiếu thẳng đứng từ hông dóng lên trên
-                vertical_ref = [hip[0], 0] 
-                back_angle = calculate_angle(shoulder, hip, vertical_ref)
-
-                # Hiển thị góc đầu gối lên màn hình video để dễ debug
-                cv2.putText(frame, f"Knee: {int(knee_angle)}", (10, 80), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(frame, f"Back: {int(back_angle)}", (10, 110), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-
-                # --- LOGIC ĐÁNH GIÁ ĐÚNG SAI ---
-                if is_recording:
-                    # Lỗi 1: Gập lưng quá sâu về phía trước (Góc lưng > 45 độ)
-                    if back_angle > 45:
-                        client.publish(TOPIC_RESULT, "WARNING|Lưng gập quá thấp!")
+                # --- CHUẨN ĐOÁN VÀ ĐẾM REP HOÀN TOÀN BẰNG AI ---
+                if model is not None:
+                    # Trích xuất 132 giá trị tọa độ
+                    row = []
+                    for lm in landmarks:
+                        row.extend([lm.x, lm.y, lm.z, lm.visibility])
                     
-                    # Bộ đếm Rep & Đánh giá độ sâu
-                    if knee_angle > 160: # Trạng thái đứng thẳng
-                        squat_stage = "up"
-                    
-                    if knee_angle < 90 and squat_stage == 'up': # Trạng thái ngồi xổm (đúng chuẩn)
-                        squat_stage = "down"
-                        squat_counter += 1
-                    elif 90 <= knee_angle <= 130 and squat_stage == 'up':
-                        # Cảnh báo nếu hạ người chưa đủ sâu mà đã đứng lên
-                        # client.publish(TOPIC_RESULT, "WARNING|Xuống chưa đủ sâu!")
-                        pass
+                    # Đưa vào AI dự đoán
+                    X_input = pd.DataFrame([row], columns=feature_names)
+                    prediction = model.predict(X_input)[0]
+
+                    # ---------------------------------------------
+                    # LOGIC CẬP NHẬT TRẠNG THÁI (STATE MACHINE)
+                    # ---------------------------------------------
+                    if prediction == 0:
+                        status_text = "STATE: STANDING"
+                        color = (255, 255, 255) # Trắng
+                        squat_stage = "up" # Ghi nhận người dùng đang đứng
+                        
+                    elif prediction == 1:
+                        status_text = "FORM: CHUAN"
+                        color = (0, 255, 0) # Xanh lá
+                        # Chỉ đếm rep khi trước đó đang đứng và giờ hạ xuống
+                        if squat_stage == "up":
+                            squat_counter += 1
+                            squat_stage = "down"
+                            
+                    elif prediction == 2:
+                        status_text = "FORM: SAI LUNG"
+                        color = (0, 0, 255) # Đỏ
+                        if squat_stage == "up":
+                            squat_counter += 1 # Vẫn tính rep nhưng báo lỗi
+                            squat_stage = "down"
+                            
+                    elif prediction == 3:
+                        status_text = "FORM: CHUA SAU"
+                        color = (0, 165, 255) # Cam
+                        if squat_stage == "up":
+                            squat_counter += 1 # Vẫn tính rep nhưng báo lỗi
+                            squat_stage = "down"
+
+                    # Hiển thị text lên màn hình
+                    cv2.putText(frame, status_text, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+                    # Bắn MQTT Cảnh báo về Android (Nếu đang Record, nếu sai tư thế (2 hoặc 3), chống spam 3s)
+                    current_time = time.time()
+                    if is_recording and (prediction in [2, 3]) and (current_time - last_alert_time > 3):
+                        if prediction == 2:
+                            client.publish(TOPIC_RESULT, "WARNING|Sai tư thế: Bạn đang gập lưng quá mức!")
+                        elif prediction == 3:
+                            client.publish(TOPIC_RESULT, "WARNING|Sai tư thế: Bạn hạ người chưa đủ sâu!")
+                        last_alert_time = current_time
 
             except Exception as e:
-                pass # Bỏ qua frame nếu thuật toán mất dấu điểm khớp
+                pass 
             
         # UI: Ghi chú đang quay và đếm số Rep
         if is_recording:

@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     // MQTT
     private var mqttClient: MqttClient? = null
     //IP CỦA MÁY TÍNH CHẠY PYTHON (Mạng nội bộ)
-    private val PYTHON_STREAM_URL = "http://192.168.1.15:5000/video_feed"
+    private val PYTHON_STREAM_URL = "http://172.29.192.1:5000/video_feed"
     private val MQTT_BROKER = "tcp://broker.emqx.io:1883"
     private val TOPIC_COMMAND = "fitness/app/command"
     private val TOPIC_RESULT = "fitness/iot/result"
