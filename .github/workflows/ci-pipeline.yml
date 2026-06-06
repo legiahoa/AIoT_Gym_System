@@ -30,3 +30,9 @@ jobs:
         # Chỉ quét kiểm tra lỗi cú pháp trong thư mục Python_Server
         python -m compileall Python_Server/
         echo "✅ Toàn bộ mã nguồn Python đã biên dịch thành công không có lỗi cú pháp!"
+
+    # --- BƯỚC MỚI THÊM VÀO ---
+    - name: Chạy Kiểm thử tự động (Unit Tests)
+      run: |
+        # Đứng từ thư mục gốc, trỏ vào Python_Server để tìm và chạy các file test
+        python -m unittest discover -s Python_Server -p "test_*.py"
