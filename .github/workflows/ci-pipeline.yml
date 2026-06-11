@@ -44,14 +44,16 @@ jobs:
     - name: Cài đặt DVC
       run: pip install dvc[gdrive]
 
-    - name: Pull mô hình (DVC)
+    - name: Cấu hình Credentials và Pull mô hình
       env:
         GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
       run: |
         cd Python_Server
-        # DVC tự động nhận biến GDRIVE_CREDENTIALS_DATA để xác thực
-        # Không cần dùng 'dvc remote modify' nữa!
-        dvc pull squat_model.pkl
+        # 1. Tạo file xác thực từ biến môi trường của GitHub
+        echo "$GDRIVE_CREDENTIALS_DATA" > gdrive_key.json
+        
+        # 2. Pull dữ liệu (DVC sẽ tự tìm thấy file gdrive_key.json nhờ cấu hình ở bước 1)
+        dvc pull
 
     # --- 4. MODEL SMOKE TEST: Bước quan trọng nhất của MLOps ---
     - name: Kiểm tra mô hình (Smoke Test)
