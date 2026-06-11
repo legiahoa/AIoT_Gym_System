@@ -38,7 +38,7 @@ print(f"2. Đã chia dữ liệu: {X_train.shape[0]} mẫu để học, {X_test.
 # ==========================================
 print("3. Đang huấn luyện thuật toán Random Forest...")
 # n_estimators=100 nghĩa là tạo ra 100 "cây quyết định" khác nhau để biểu quyết
-model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+model = RandomForestClassifier(n_estimators=100,class_weight='balanced', random_state=42)
 model.fit(X_train, y_train)
 
 # ==========================================

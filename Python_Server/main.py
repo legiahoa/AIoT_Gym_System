@@ -18,7 +18,7 @@ TOPIC_COMMAND = "fitness/app/command"
 TOPIC_RESULT = "fitness/iot/result"   
 
 # IP CỦA THIẾT BỊ IOT (Sửa lại IP máy tính của bạn nếu cần)
-IP_PYTHON = "172.29.192.1" 
+IP_PYTHON = "172.30.128.1" 
 
 # ==========================================
 # 2. BIẾN TOÀN CỤC & FLASK APP & AI MODEL
@@ -36,7 +36,7 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 mp_draw = mp.solutions.drawing_utils
 
-# Biến dùng cho Logic đếm Rep hoàn toàn bằng AI
+# Biến dùng cho Logic đếm Rep hoàn toàn bằng AI kết hợp Hình học
 squat_stage = "up" 
 squat_counter = 0
 
@@ -59,6 +59,9 @@ def save_local_and_notify():
     try:
         final_filename = f"exercise_{int(time.time())}.mp4"
         save_path = os.path.join("static", "videos", final_filename)
+        
+        # Đảm bảo thư mục tồn tại
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         shutil.move(temp_filename, save_path)
         
         video_url = f"http://{IP_PYTHON}:5000/videos/{final_filename}"
@@ -76,7 +79,6 @@ def on_mqtt_message(client, userdata, msg):
     
     if command == "START":
         if not is_recording:
-            # Reset biến đếm khi bắt đầu set mới
             squat_counter = 0
             squat_stage = "up"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -129,20 +131,20 @@ def process_camera():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-    # Khởi tạo tên cột cho Pandas DataFrame một lần để tiết kiệm tài nguyên
+    # KHẮC PHỤC LỖI TÊN CỘT: Bỏ dấu gạch dưới để khớp 100% với file CSV huấn luyện
     feature_names = []
     for i in range(33):
-        feature_names.extend([f"x_{i}", f"y_{i}", f"z_{i}", f"v_{i}"])
+        feature_names.extend([f"x{i}", f"y{i}", f"z{i}", f"v{i}"])
 
     while cap.isOpened():
         success, frame = cap.read()
         if not success: continue
 
-        # Nếu bạn đã xoay dọc camera thực tế, hãy bỏ comment dòng dưới đây
-        # frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(image_rgb)
+
+        status_text = "DANG QUET..."
+        color = (200, 200, 200)
 
         if results.pose_landmarks:
             mp_draw.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
@@ -150,58 +152,60 @@ def process_camera():
             try:
                 landmarks = results.pose_landmarks.landmark
                 
-                # --- CHUẨN ĐOÁN VÀ ĐẾM REP HOÀN TOÀN BẰNG AI ---
-                if model is not None:
-                    # Trích xuất 132 giá trị tọa độ
-                    row = []
-                    for lm in landmarks:
-                        row.extend([lm.x, lm.y, lm.z, lm.visibility])
-                    
-                    # Đưa vào AI dự đoán
-                    X_input = pd.DataFrame([row], columns=feature_names)
-                    prediction = model.predict(X_input)[0]
-
-                    # ---------------------------------------------
-                    # LOGIC CẬP NHẬT TRẠNG THÁI (STATE MACHINE)
-                    # ---------------------------------------------
-                    if prediction == 0:
-                        status_text = "STATE: STANDING"
-                        color = (255, 255, 255) # Trắng
-                        squat_stage = "up" # Ghi nhận người dùng đang đứng
+                # --- THUẬT TOÁN HÌNH HỌC: XÁC ĐỊNH TRẠNG THÁI ĐỨNG ---
+                left_hip_y = landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y
+                right_hip_y = landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y
+                left_knee_y = landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y
+                right_knee_y = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y
+                
+                avg_hip_y = (left_hip_y + right_hip_y) / 2.0
+                avg_knee_y = (left_knee_y + right_knee_y) / 2.0
+                
+                # Nếu hông cao hơn đầu gối 1 khoảng an toàn -> Đang đứng
+                if avg_hip_y < avg_knee_y - 0.15:
+                    status_text = "STATE: STANDING"
+                    color = (255, 255, 255) # Trắng
+                    squat_stage = "up"
+                else:
+                    # --- AI INFERENCE: KHI BẮT ĐẦU HẠ NGƯỜI SQUAT ---
+                    if model is not None:
+                        row = []
+                        for lm in landmarks:
+                            row.extend([lm.x, lm.y, lm.z, lm.visibility])
                         
-                    elif prediction == 1:
-                        status_text = "FORM: CHUAN"
-                        color = (0, 255, 0) # Xanh lá
-                        # Chỉ đếm rep khi trước đó đang đứng và giờ hạ xuống
-                        if squat_stage == "up":
-                            squat_counter += 1
-                            squat_stage = "down"
-                            
-                    elif prediction == 2:
-                        status_text = "FORM: SAI LUNG"
-                        color = (0, 0, 255) # Đỏ
-                        if squat_stage == "up":
-                            squat_counter += 1 # Vẫn tính rep nhưng báo lỗi
-                            squat_stage = "down"
-                            
-                    elif prediction == 3:
-                        status_text = "FORM: CHUA SAU"
-                        color = (0, 165, 255) # Cam
-                        if squat_stage == "up":
-                            squat_counter += 1 # Vẫn tính rep nhưng báo lỗi
-                            squat_stage = "down"
+                        X_input = pd.DataFrame([row], columns=feature_names)
+                        prediction = model.predict(X_input)[0]
 
-                    # Hiển thị text lên màn hình
-                    cv2.putText(frame, status_text, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                        # AI quy ước: 0 = Chuẩn, 1 = Cong Lưng, 2 = Chưa đủ sâu
+                        if prediction == 0:
+                            status_text = "FORM: CHUAN"
+                            color = (0, 255, 0)
+                            if squat_stage == "up":
+                                squat_counter += 1
+                                squat_stage = "down"
+                                
+                        elif prediction == 1:
+                            status_text = "FORM: SAI LUNG"
+                            color = (0, 0, 255)
+                            if squat_stage == "up":
+                                squat_counter += 1
+                                squat_stage = "down"
+                                
+                        elif prediction == 2:
+                            status_text = "FORM: CHUA SAU"
+                            color = (0, 165, 255)
+                            if squat_stage == "up":
+                                squat_counter += 1
+                                squat_stage = "down"
 
-                    # Bắn MQTT Cảnh báo về Android (Nếu đang Record, nếu sai tư thế (2 hoặc 3), chống spam 3s)
-                    current_time = time.time()
-                    if is_recording and (prediction in [2, 3]) and (current_time - last_alert_time > 3):
-                        if prediction == 2:
-                            client.publish(TOPIC_RESULT, "WARNING|Sai tư thế: Bạn đang gập lưng quá mức!")
-                        elif prediction == 3:
-                            client.publish(TOPIC_RESULT, "WARNING|Sai tư thế: Bạn hạ người chưa đủ sâu!")
-                        last_alert_time = current_time
+                        # Bắn cảnh báo về Android (nếu sai tư thế 1 hoặc 2)
+                        current_time = time.time()
+                        if is_recording and (prediction in [1, 2]) and (current_time - last_alert_time > 3):
+                            if prediction == 1:
+                                client.publish(TOPIC_RESULT, "WARNING|Sai tư thế: Bạn đang gập/cong lưng!")
+                            elif prediction == 2:
+                                client.publish(TOPIC_RESULT, "WARNING|Sai tư thế: Bạn hạ người chưa đủ sâu!")
+                            last_alert_time = current_time
 
             except Exception as e:
                 pass 
@@ -211,6 +215,9 @@ def process_camera():
             cv2.circle(frame, (30, 30), 10, (0, 0, 255), -1) 
             cv2.putText(frame, f"REC | Reps: {squat_counter}", (50, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             video_writer.write(frame)
+
+        # Hiển thị Status Text lên frame
+        cv2.putText(frame, status_text, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
         with lock:
             output_frame = frame.copy()

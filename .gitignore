@@ -1,6 +1,25 @@
+# --- CẤU HÌNH CHO ANDROID APP ---
+Android_App/.gradle/
+Android_App/.idea/
+Android_App/build/
+Android_App/app/build/
+Android_App/local.properties
+*.iml
+
+# --- CẤU HÌNH CHO PYTHON SERVER ---
 Python_Server/ai_env/
 Python_Server/__pycache__/
-Python_Server/temp_set.mp4
-Python_Server/gdrive_key.json
-Python_Server/raw_videos/
+*.pyc
+*.mp4
+*.avi
 Python_Server/static/videos/
+Python_Server/gdrive_key.json
+
+# --- CẤU HÌNH CHUNG ---
+.DS_Store
+.vscode/
+
+# --- NGOẠI LỆ (Đẩy lên GitHub) ---
+# Dù DVC quản lý file, nhưng ta đẩy file CSV và Model để làm "bản ghi" nhẹ
+!Python_Server/squat_dataset_extracted.csv
+!Python_Server/squat_model.pkl
