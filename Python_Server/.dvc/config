@@ -2,4 +2,3 @@
     remote = myremote
 ['remote "myremote"']
     url = gdrive://1c1RddCtlv3PtVFBm1znlCWLhyVJxpay7
-    gdrive_service_account_json_file = gdrive_key.json

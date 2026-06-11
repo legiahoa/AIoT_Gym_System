@@ -49,11 +49,12 @@ jobs:
         GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
       run: |
         cd Python_Server
-        # 1. Tạo file xác thực từ biến môi trường của GitHub
+        # 1. Tạo file xác thực
         echo "$GDRIVE_CREDENTIALS_DATA" > gdrive_key.json
         
-        # 2. Pull dữ liệu (DVC sẽ tự tìm thấy file gdrive_key.json nhờ cấu hình ở bước 1)
-        dvc pull
+        # 2. Pull dữ liệu với biến môi trường đặc biệt của DVC
+        # DVC tự động tìm biến này để biết dùng file nào cho việc xác thực
+        GDRIVE_SERVICE_ACCOUNT_JSON_FILE=gdrive_key.json dvc pull
 
     # --- 4. MODEL SMOKE TEST: Bước quan trọng nhất của MLOps ---
     - name: Kiểm tra mô hình (Smoke Test)
