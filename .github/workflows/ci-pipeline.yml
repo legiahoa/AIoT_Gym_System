@@ -49,14 +49,17 @@ jobs:
         GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
       run: |
         cd Python_Server
+        
         # 1. Tạo file xác thực
         echo "$GDRIVE_CREDENTIALS_DATA" > gdrive_key.json
         
-        # 2. Cấu hình DVC bằng --local (Sẽ không sửa file config chính, tránh lỗi extra keys)
-        # myremote là tên remote bạn đã đặt
-        dvc remote modify --local myremote gdrive_service_account_json_file gdrive_key.json
+        # 2. Bật chế độ Service Account (BẮT BUỘC)
+        dvc remote modify --local myremote gdrive_use_service_account true
         
-        # 3. Pull dữ liệu
+        # 3. Chỉ định đường dẫn tới file key (LƯU Ý: có chữ _path)
+        dvc remote modify --local myremote gdrive_service_account_json_file_path gdrive_key.json
+        
+        # 4. Pull dữ liệu
         dvc pull
 
     # --- 4. MODEL SMOKE TEST: Bước quan trọng nhất của MLOps ---
