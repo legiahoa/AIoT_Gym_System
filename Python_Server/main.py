@@ -123,8 +123,7 @@ def video_feed():
     return Response(generate_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 def process_camera():
-    global output_frame, is_recording, video_writer
-    global squat_stage, squat_counter, last_alert_time 
+    global output_frame, squat_stage, squat_counter, last_alert_time 
     
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
