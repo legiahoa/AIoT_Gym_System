@@ -53,14 +53,14 @@ jobs:
         # 1. Tạo file xác thực
         echo "$GDRIVE_CREDENTIALS_DATA" > gdrive_key.json
         
-        # 2. Bật chế độ Service Account (BẮT BUỘC)
+        # 2. Bật chế độ Service Account
         dvc remote modify --local myremote gdrive_use_service_account true
         
-        # 3. Chỉ định đường dẫn tới file key (LƯU Ý: có chữ _path)
+        # 3. Chỉ định đường dẫn tới file key
         dvc remote modify --local myremote gdrive_service_account_json_file_path gdrive_key.json
         
-        # 4. Pull dữ liệu
-        dvc pull
+        # 4. Pull dữ liệu và ép buộc ghi đè trong môi trường CI
+        dvc pull --force
 
     # --- 4. MODEL SMOKE TEST: Bước quan trọng nhất của MLOps ---
     - name: Kiểm tra mô hình (Smoke Test)
