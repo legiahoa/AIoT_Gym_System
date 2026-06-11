@@ -19,20 +19,36 @@ jobs:
       with:
         python-version: '3.11' 
 
+    # --- 1. CACHING: Tăng tốc cực nhanh cho các lần sau ---
+    - name: Cài đặt Cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Cài đặt thư viện (Dependencies)
       run: |
         python -m pip install --upgrade pip
-        # Trỏ đúng vào thư mục Python_Server để cài thư viện
         pip install -r Python_Server/requirements.txt
+        pip install flake8  # Cài thêm công cụ kiểm tra code
 
-    - name: Kiểm tra toàn vẹn mã nguồn
+    # --- 2. LINTING: Đảm bảo code chuẩn PEP8 ---
+    - name: Kiểm tra chất lượng code (Lint)
       run: |
-        # Chỉ quét kiểm tra lỗi cú pháp trong thư mục Python_Server
-        python -m compileall Python_Server/
-        echo "✅ Toàn bộ mã nguồn Python đã biên dịch thành công không có lỗi cú pháp!"
+        flake8 Python_Server/ --count --select=E9,F63,F7,F82 --show-source --statistics
 
-    # --- BƯỚC MỚI THÊM VÀO ---
+    # --- 3. DVC PULL: Lấy mô hình thật về (Giả sử bạn đã config DVC) ---
+    # Nếu chưa config remote cho DVC, bạn có thể bỏ qua bước này
+    - name: DVC Pull
+      run: dvc pull Python_Server/squat_model.pkl
+
+    # --- 4. MODEL SMOKE TEST: Bước quan trọng nhất của MLOps ---
+    - name: Kiểm tra mô hình (Smoke Test)
+      run: |
+        python -c "import pickle; model = pickle.load(open('Python_Server/squat_model.pkl', 'rb')); print('Model loaded successfully!')"
+
     - name: Chạy Kiểm thử tự động (Unit Tests)
       run: |
-        # Đứng từ thư mục gốc, trỏ vào Python_Server để tìm và chạy các file test
         python -m unittest discover -s Python_Server -p "test_*.py"
