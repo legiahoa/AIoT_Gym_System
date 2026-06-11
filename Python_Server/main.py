@@ -109,7 +109,6 @@ def play_video(filename):
     return send_from_directory(os.path.join(app.root_path, 'static', 'videos'), filename)
 
 def generate_stream():
-    global output_frame, lock
     while True:
         with lock:
             if output_frame is None:
@@ -124,7 +123,7 @@ def video_feed():
     return Response(generate_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 def process_camera():
-    global output_frame, lock, is_recording, video_writer
+    global output_frame, is_recording, video_writer
     global squat_stage, squat_counter, last_alert_time 
     
     cap = cv2.VideoCapture(0)
