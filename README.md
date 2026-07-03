@@ -1,4 +1,5 @@
 # AIoT Gym System: Real-Time Edge AI & MLOps Fitness Assistant
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/9f28d6d2-7d48-4916-85c8-4098ce10c2d6" />
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
@@ -35,7 +36,62 @@ The system is structured into four core interconnected pipelines:
                             |                        |
                             v                        v
 [ User ] <---> [ Android App (Kotlin/WebView/MQTT Client) ] ---> [ Cloud Firestore ]
-1. Overall System ArchitectureDecoupled Processing: Heavy computer vision tasks run locally on the Edge Processing Server, keeping CPU utilization low on mobile clients.Low-Latency Communication: Control commands (START/STOP) and warning alerts are transferred via MQTT topics (fitness/app/command and fitness/iot/result).2. Edge Computer Vision PipelineGeometric Heuristic Filter: Pre-checks user state by comparing hip and knee Y-coordinates (y_hip vs y_knee). The Random Forest AI model is only invoked when the user initiates a squat, reducing edge CPU consumption during standing/resting phases.Repetition & Error Tracking: A state machine dynamically updates squat stages (up/down) to count reps accurately and trigger cooldown-protected warning alarms (max 1 alert per 3 seconds to prevent spamming).3. DataOps LifecycleTraining Data Pipeline: Video frames are processed into a lightweight CSV tabular dataset (squat_dataset_extracted.csv) containing 132 landmark features per frame ($33 \text{ landmarks} \times 4 \text{ values}: x, y, z, visibility$).Session Data Pipeline: Local video recordings are saved on the Edge Server filesystem (static/videos), while only lightweight session metadata (User ID, timestamp, rep count, mistake count, and video URL) is pushed to Cloud Firestore.4. Automated MLOps CI PipelineGit + DVC Synergy: Git tracks source code and .dvc metadata files, while heavy model artifacts (squat_model.pkl) and CSV datasets are versioned and stored in a Google Drive Remote bucket.Continuous Integration: Every Git push triggers a GitHub Actions workflow that sets up Python 3.11, lints code with flake8, authenticates and pulls the model artifact via DVC, and executes automated regression/unit tests.Key Performance MetricsMetricMeasured PerformanceImpact / Technical SignificanceModel Accuracy67.86% (Test Set)Prototype baseline performance. Validates the end-to-end extraction pipeline while highlighting the need for future dataset scaling due to current class imbalance.Edge Processing Speed25 -- 30 FPSSmooth real-time tracking with average inference latency under 30ms per frame.Edge CPU Utilization15 -- 20%Lightweight tabular ML inference and geometric filtering allow deployment on resource-constrained Edge hardware (e.g., Raspberry Pi 4).MQTT Network Latency< 50 msInstantaneous haptic vibration feedback on Android client upon posture error detection.CI/CD Build Duration2m 20sReliable automated verification pipeline including DVC artifact retrieval, code linting, and automated unit testing.Technology StackEdge Processing Server (Python)Computer Vision: OpenCV, MediaPipe PoseMachine Learning: scikit-learn (Random Forest Classifier), pandas, numpy, pickleWeb & Streaming: Flask (Multipart MJPEG Streaming)IoT Protocol: paho-mqtt (MQTT Client)Mobile Application (Android)Language & Architecture: Kotlin, Android SDK, MainActivity WebView StreamerAuthentication & Database: Google Sign-In, Firebase Authentication, Cloud Firestore (NoSQL)IoT Client: Eclipse Paho MQTT ClientMLOps & DevOpsCI/CD Automation: GitHub Actions (.github/workflows/ci-pipeline.yml)Data Versioning: DVC (Data Version Control), Google Drive Remote Storage, Service Account AuthenticationCode Quality & Testing: flake8, Python unittestRepository StructurePlaintextAIoT_Gym_System/
+```
+
+### 1. Overall System Architecture
+* **Decoupled Processing:** Heavy computer vision tasks run locally on the Edge Processing Server, keeping CPU utilization low on mobile clients.
+* **Low-Latency Communication:** Control commands (`START`/`STOP`) and warning alerts are transferred via MQTT topics (`fitness/app/command` and `fitness/iot/result`).
+
+### 2. Edge Computer Vision Pipeline
+* **Geometric Heuristic Filter:** Pre-checks user state by comparing hip and knee Y-coordinates (`y_hip vs y_knee`). The Random Forest AI model is only invoked when the user initiates a squat, reducing edge CPU consumption during standing/resting phases.
+* **Repetition & Error Tracking:** A state machine dynamically updates squat stages (`up`/`down`) to count reps accurately and trigger cooldown-protected warning alarms (max 1 alert per 3 seconds to prevent spamming).
+
+### 3. DataOps Lifecycle
+* **Training Data Pipeline:** Video frames are processed into a lightweight CSV tabular dataset (`squat_dataset_extracted.csv`) containing 132 landmark features per frame ($33 \text{ landmarks} \times 4 \text{ values}: x, y, z, visibility$).
+* **Session Data Pipeline:** Local video recordings are saved on the Edge Server filesystem (`static/videos`), while only lightweight session metadata (User ID, timestamp, rep count, mistake count, and video URL) is pushed to Cloud Firestore.
+
+### 4. Automated MLOps CI Pipeline
+* **Git + DVC Synergy:** Git tracks source code and `.dvc` metadata files, while heavy model artifacts (`squat_model.pkl`) and CSV datasets are versioned and stored in a Google Drive Remote bucket.
+* **Continuous Integration:** Every Git push triggers a GitHub Actions workflow that sets up Python 3.11, lints code with `flake8`, authenticates and pulls the model artifact via DVC, and executes automated regression/unit tests.
+
+---
+
+## Key Performance Metrics
+
+| Metric | Measured Performance | Impact / Technical Significance |
+| :--- | :--- | :--- |
+| **Model Accuracy** | **67.86%** (Test Set) | Prototype baseline performance. Validates the end-to-end extraction pipeline while highlighting the need for future dataset scaling due to current class imbalance. |
+| **Edge Processing Speed** | **25 -- 30 FPS** | Smooth real-time tracking with average inference latency under **30ms** per frame. |
+| **Edge CPU Utilization** | **15 -- 20%** | Lightweight tabular ML inference and geometric filtering allow deployment on resource-constrained Edge hardware (e.g., Raspberry Pi 4). |
+| **MQTT Network Latency** | **< 50 ms** | Instantaneous haptic vibration feedback on Android client upon posture error detection. |
+| **CI/CD Build Duration** | **2m 20s** | Reliable automated verification pipeline including DVC artifact retrieval, code linting, and automated unit testing. |
+
+---
+
+## Technology Stack
+
+### Edge Processing Server (Python)
+* **Computer Vision:** `OpenCV`, `MediaPipe Pose`
+* **Machine Learning:** `scikit-learn` (Random Forest Classifier), `pandas`, `numpy`, `pickle`
+* **Web & Streaming:** `Flask` (Multipart MJPEG Streaming)
+* **IoT Protocol:** `paho-mqtt` (MQTT Client)
+
+### Mobile Application (Android)
+* **Language & Architecture:** `Kotlin`, Android SDK, MainActivity WebView Streamer
+* **Authentication & Database:** `Google Sign-In`, `Firebase Authentication`, `Cloud Firestore` (NoSQL)
+* **IoT Client:** `Eclipse Paho MQTT Client`
+
+### MLOps & DevOps
+* **CI/CD Automation:** `GitHub Actions` (`.github/workflows/ci-pipeline.yml`)
+* **Data Versioning:** `DVC` (Data Version Control), Google Drive Remote Storage, Service Account Authentication
+* **Code Quality & Testing:** `flake8`, Python `unittest`
+
+---
+
+## Repository Structure
+
+```text
+AIoT_Gym_System/
 ├── .github/workflows/
 │   └── ci-pipeline.yml          # GitHub Actions MLOps CI pipeline configuration
 ├── Android_App/                 # Kotlin Android Studio project
@@ -51,7 +107,31 @@ The system is structured into four core interconnected pipelines:
 │   └── squat_dataset.csv.dvc    # DVC metadata pointer for tabular training data
 ├── .dvc/                        # DVC remote configuration
 └── README.md
-AuthorLê Gia HòaRole: Cloud & Network Engineering Intern | Systems & MLOps EnthusiastUniversity: VNU-HCM University of Information Technology (UIT)Email: legiahoa1515@gmail.comLinkedIn: linkedin.com/in/legiahoaGitHub: github.com/legiahoaGetting Started & InstallationPrerequisitesPython $\ge 3.11$Android Studio (Koala / Latest) & Android Device/Emulator connected to the same LANGit and DVC installed locally1. Edge Processing Server SetupBash# Clone the repository
+```
+
+---
+
+## Author
+
+**Lê Gia Hòa**
+* **Role:** Cloud & Network Engineering Intern | Systems & MLOps Enthusiast
+* **University:** VNU-HCM University of Information Technology (UIT)
+* **Email:** [legiahoa1515@gmail.com](mailto:legiahoa1515@gmail.com)
+* **LinkedIn:** [linkedin.com/in/legiahoa](https://www.linkedin.com/in/legiahoa)
+* **GitHub:** [github.com/legiahoa](https://github.com/legiahoa)
+
+---
+
+## Getting Started & Installation
+
+### Prerequisites
+* **Python** $\ge 3.11$
+* **Android Studio** (Koala / Latest) & Android Device/Emulator connected to the same LAN
+* **Git** and **DVC** installed locally
+
+### 1. Edge Processing Server Setup
+```bash
+# Clone the repository
 git clone [https://github.com/legiahoa/AIoT_Gym_System.git](https://github.com/legiahoa/AIoT_Gym_System.git)
 cd AIoT_Gym_System/Python_Server
 
@@ -67,12 +147,34 @@ dvc pull
 
 # Start the Edge Processing Server
 python app.py
-The Flask server will start streaming at http://<YOUR_LOCAL_IP>:5000/video_feed and connect to the public MQTT broker (broker.emqx.io:1883).2. Android Application SetupOpen the Android_App folder in Android Studio.Add your google-services.json file from your Firebase Project into the app/ directory.In MainActivity.kt, update the Server IP address to point to your Edge Python Server's LAN IP.Build and run the APK on your Android device.Running Automated Tests & MLOps PipelineTo manually execute the unit test suite locally:Bashcd Python_Server
+```
+*The Flask server will start streaming at `http://<YOUR_LOCAL_IP>:5000/video_feed` and connect to the public MQTT broker (`broker.emqx.io:1883`).*
+
+### 2. Android Application Setup
+1. Open the `Android_App` folder in **Android Studio**.
+2. Add your `google-services.json` file from your Firebase Project into the `app/` directory.
+3. In `MainActivity.kt`, update the Server IP address to point to your Edge Python Server's LAN IP.
+4. Build and run the APK on your Android device.
+
+---
+
+## Running Automated Tests & MLOps Pipeline
+
+To manually execute the unit test suite locally:
+```bash
+cd Python_Server
 python -m unittest discover -v
-To update model weights and trigger the GitHub Actions MLOps pipeline:Bash# After retraining with train_model.py
+```
+
+To update model weights and trigger the GitHub Actions MLOps pipeline:
+```bash
+# After retraining with train_model.py
 dvc add squat_model.pkl
 dvc push
 git add squat_model.pkl.dvc
 git commit -m "chore(mlops): retrain squat model with updated landmark dataset"
 git push origin main
-This project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.
+```
+
+---
+*This project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.*
