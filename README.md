@@ -111,17 +111,6 @@ AIoT_Gym_System/
 
 ---
 
-## Author
-
-**Lê Gia Hòa**
-* **Role:** Cloud & Network Engineering Intern | Systems & MLOps Enthusiast
-* **University:** VNU-HCM University of Information Technology (UIT)
-* **Email:** [legiahoa1515@gmail.com](mailto:legiahoa1515@gmail.com)
-* **LinkedIn:** [linkedin.com/in/legiahoa](https://www.linkedin.com/in/legiahoa)
-* **GitHub:** [github.com/legiahoa](https://github.com/legiahoa)
-
----
-
 ## Getting Started & Installation
 
 ### Prerequisites
@@ -175,6 +164,15 @@ git add squat_model.pkl.dvc
 git commit -m "chore(mlops): retrain squat model with updated landmark dataset"
 git push origin main
 ```
+
+## Author
+
+**Lê Gia Hòa**
+* **Role:** Cloud & Network Engineering Intern | Systems & MLOps Enthusiast
+* **University:** VNU-HCM University of Information Technology (UIT)
+* **Email:** [legiahoa1515@gmail.com](mailto:legiahoa1515@gmail.com)
+* **LinkedIn:** [linkedin.com/in/legiahoa](https://www.linkedin.com/in/legiahoa)
+* **GitHub:** [github.com/legiahoa](https://github.com/legiahoa)
 
 ---
 *This project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.*
