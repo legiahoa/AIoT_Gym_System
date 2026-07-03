@@ -61,7 +61,7 @@ The system is structured into four core interconnected pipelines:
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Edge Processing Server (Python)
 * **Computer Vision:** `OpenCV`, `MediaPipe Pose`
@@ -124,4 +124,11 @@ dvc push
 git add squat_model.pkl.dvc
 git commit -m "chore(mlops): retrain squat model with updated landmark dataset"
 git push origin main
- AuthorLê Gia HòaRole: Cloud & Network Engineering Intern | Systems & MLOps EnthusiastUniversity: VNU-HCM University of Information Technology (UIT)Email: legiahoa1515@gmail.comLinkedIn: linkedin.com/in/legiahoaGitHub: github.com/legiahoaThis project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.
+
+# Author
+Lê Gia Hòa
+Role: Cloud & Network Engineering Intern | Systems & MLOps
+EnthusiastUniversity: VNU-HCM University of Information Technology (UIT)
+Email: legiahoa1515@gmail.com
+LinkedIn: linkedin.com/in/legiahoaGitHub: github.com/legiahoa
+This project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.
