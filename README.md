@@ -1,5 +1,6 @@
-# 🏋️‍♂️ AIoT Gym System: Real-Time Edge AI & MLOps Fitness Assistant
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/8b2687b0-32de-4ffd-9a15-2864d57bae07" />
+#  AIoT Gym System: Real-Time Edge AI & MLOps Fitness Assistant
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/cb463ed5-7fe5-4a0d-9b1b-90bca79ed1a8" />
+
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
@@ -48,7 +49,7 @@ The system is structured into four core interconnected pipelines:
 
 ---
 
-## 🚀 Key Performance Metrics
+##  Key Performance Metrics
 
 | Metric | Measured Performance | Impact / Technical Significance |
 | :--- | :--- | :--- |
@@ -60,7 +61,7 @@ The system is structured into four core interconnected pipelines:
 
 ---
 
-##  Technology Stack
+## 🛠️ Technology Stack
 
 ### Edge Processing Server (Python)
 * **Computer Vision:** `OpenCV`, `MediaPipe Pose`
@@ -123,13 +124,4 @@ dvc push
 git add squat_model.pkl.dvc
 git commit -m "chore(mlops): retrain squat model with updated landmark dataset"
 git push origin main
-
-
-** AUTHOR**
-- Lê Gia Hòa
-- Role: Cloud & Network Engineering Intern | Systems & MLOps 
-- EnthusiastUniversity: VNU-HCM University of Information Technology (UIT)
-- Email: legiahoa1515@gmail.com
-- LinkedIn: linkedin.com/in/legiahoa
-- GitHub: github.com/legiahoa
-This project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.
+ AuthorLê Gia HòaRole: Cloud & Network Engineering Intern | Systems & MLOps EnthusiastUniversity: VNU-HCM University of Information Technology (UIT)Email: legiahoa1515@gmail.comLinkedIn: linkedin.com/in/legiahoaGitHub: github.com/legiahoaThis project was developed as a specialized technical demonstration of integrating Computer Vision, IoT communication protocols, and modern MLOps practices into a scalable edge architecture.
