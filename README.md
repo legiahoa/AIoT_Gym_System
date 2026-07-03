@@ -1,5 +1,5 @@
 # AIoT Gym System: Real-Time Edge AI & MLOps Fitness Assistant
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/9f28d6d2-7d48-4916-85c8-4098ce10c2d6" />
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/6ce773b2-3d25-4771-a62a-cd0984694586" />
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
@@ -164,6 +164,8 @@ git add squat_model.pkl.dvc
 git commit -m "chore(mlops): retrain squat model with updated landmark dataset"
 git push origin main
 ```
+
+---
 
 ## Author
 
