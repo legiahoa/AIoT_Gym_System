@@ -1,5 +1,6 @@
 # AIoT Gym System: Real-Time Edge AI & MLOps Fitness Assistant
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/6ce773b2-3d25-4771-a62a-cd0984694586" />
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/8c766047-eec8-4053-aace-f12dca70036f" />
+
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
