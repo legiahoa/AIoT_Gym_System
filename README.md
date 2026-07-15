@@ -171,7 +171,7 @@ git push origin main
 ## Author
 
 **Lê Gia Hòa**
-* **Role:** Cloud & Network Engineering Intern | Systems & MLOps Enthusiast
+* **Role:** Cloud & Network Student | Systems & DevOps Enthusiast
 * **University:** VNU-HCM University of Information Technology (UIT)
 * **Email:** [legiahoa1515@gmail.com](mailto:legiahoa1515@gmail.com)
 * **LinkedIn:** [linkedin.com/in/legiahoa](https://www.linkedin.com/in/legiahoa)
